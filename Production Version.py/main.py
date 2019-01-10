@@ -12,30 +12,28 @@ intervals = []
 start = True
 profile = False
 
-# >>>>>>>>>>>>>>>>>>>>>>> MAC ONLY
-# blowerpwm = 0
-# heaterpwm = 0
 
 # >>>>>>>>>>>>>>>>>>>>>>> RPI ONLY
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 
-GPIO.setmode(GPIO.BOARD)
+# GPIO.setmode(GPIO.BOARD)
 
-# assigning pin 10 - HEATER
-GPIO.setup(10, GPIO.OUT)
-GPIO.output(10, 0)
+# # assigning pin 10 - HEATER
+# GPIO.setup(10, GPIO.OUT)
+# GPIO.output(10, 0)
 
-# assigning pin 8 - BLOWER
-GPIO.setup(8, GPIO.OUT)
-GPIO.output(8, 0)
+# # assigning pin 8 - BLOWER
+# GPIO.setup(8, GPIO.OUT)
+# GPIO.output(8, 0)
 
-# starting PWM for heater
-heaterpwm = GPIO.PWM(10, 60)
-heaterpwm.start(0)
+# # starting PWM for heater
+# heaterpwm = GPIO.PWM(10, 60)
+# heaterpwm.start(0)
 
-# starting PWM for the blower
-blowerpwm = GPIO.PWM(8, 59)
-blowerpwm.start(0)
+# # starting PWM for the blower
+# blowerpwm = GPIO.PWM(8, 59)
+# blowerpwm.start(0)
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 air_now = 0
 heat_now = 0
@@ -58,8 +56,7 @@ hpwmdisp.set(heat_now)
 def logit(air, heat, time):
 	global intervals
 	intervals.append([air, heat, time])
-	for i, n in enumerate(intervals):
-		print(f'interval {i}: {n}')
+	print(f'new interval {len(intervals)}: {intervals[-1]}')
 
 def saveit():
         global intervals
@@ -91,22 +88,26 @@ def setpwm(root, air, heat):
 			
 		startint = time()
 		
-		# blowerpwm = air
-		blowerpwm.ChangeDutyCycle(air)
-		air_now = air
+		##### DEVELOPMENT toggle the two lines below for development on a mac
+		blowerpwm = air
+		# blowerpwm.ChangeDutyCycle(air)
 
+		air_now = air
 		bpwmdisp.set(air_now)
 		jumptoair.delete(0, END)
 
-		# heaterpwm = heat
-		heaterpwm.ChangeDutyCycle(heat)
-		heat_now = heat
+		##### DEVELOPMENT toggle the two lines below for development on a mac
+		heaterpwm = heat
+		# heaterpwm.ChangeDutyCycle(heat)
 
+		heat_now = heat
 		hpwmdisp.set(heat_now)
 		jumptoheat.delete(0, END)
-	else:
-                blowerpwm.ChangeDutyCycle(air)
-                heaterpwm.ChangeDutyCycle(heat)
+
+	##### DEVELOPMENT 
+	#else:
+		# blowerpwm.ChangeDutyCycle(air)
+		# heaterpwm.ChangeDutyCycle(heat)
 
 def control(root, bkill, hkill):
 	global blowerpwm
@@ -169,8 +170,8 @@ def control(root, bkill, hkill):
 
 def close_window(root):
     control(root, True, True)
-    # RPi Only
-    GPIO.cleanup()
+    #### DEVELOPMENT
+    # GPIO.cleanup()
     exit()
 
 def killall(root):
