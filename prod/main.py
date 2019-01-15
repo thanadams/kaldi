@@ -170,7 +170,6 @@ def control(root, bkill, hkill):
 
 	else:
 		print(msg)
-	
 
 def close_window(root):
     control(root, True, True)
@@ -319,8 +318,6 @@ jumptoheat = Entry(root, background='red')
 jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 
 
-
-
 def reset():
 	global intervals
 	global start
@@ -346,6 +343,7 @@ def loadit():
         rawimport = list(reader)
         intervals = [list(map(float,rawimport)) for rawimport in rawimport]
         profiledisplayname.set(os.path.basename(infile.name))
+        profile_name = os.path.basename(infile.name)
 
     infile.close()
     print(f'FILENAME: {profile_name}')
@@ -419,7 +417,7 @@ pattern = '{0:02d}:{1:02d}:{2:02d}'
 startButton = Button(root, text='Start', command=swstart)
 startButton.place(x=500-250-(60/2)-65, y=30+35+10, height=25, width=60)
 
-resetButton = Button(root, text='Reset', command=swreset,)
+resetButton = Button(root, text='Reset', command=swreset)
 resetButton.place(x=500-250-(60/2), y=30+35+10, height=25, width=60)
 
 stopButton = Button(root, text='Stop', command=swpause)
@@ -429,7 +427,7 @@ stopButton.place(x=500-250-(60/2)+65, y=30+35+10, height=25, width=60)
 ## END STOPWATCH ##
 
 
-root.bind('<Control-x>', close_window)
+root.bind('<Control-Escape>', close_window)
 root.bind('<Control-k>', killall)
 
 
