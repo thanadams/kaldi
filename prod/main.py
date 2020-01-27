@@ -13,6 +13,11 @@ intervals = []
 start = True
 profile = False
 
+heat_upper_bound = 100
+heat_lower_bound = 25
+blower_upper_bound = 100
+blower_lower_bound = 20
+
 
 # >>>>>>>>>>>>>>>>>>>>>>> RPI ONLY
 # import RPi.GPIO as GPIO
@@ -78,40 +83,48 @@ def setpwm(root, air, heat):
 	global profile
 	global heat_now
 	global air_now
+	global heat_upper_bound 
+	global heat_lower_bound
+	global blower_upper_bound 
+	global blower_lower_bound
 	
-	if profile == False:
-		if start == True:
-			startint = time()
-			start = False
-			swstart()
-		else:
-			if air_now == 0 and heat_now == 0:
-				logit(air, heat, time() - startint)
+	if air > blower_upper_bound or heat > heat_upper_bound or air < blower_lower_bound or heat < heat_lower_bound:
+		print('Out of bounds for the blower or heater!')
+
+	else:
+		if profile == False:
+			if start == True:
+				startint = time()
+				start = False
+				swstart()
 			else:
-				logit(air_now, heat_now, time() - startint)
+				if air_now == 0 and heat_now == 0:
+					logit(air, heat, time() - startint)
+				else:
+					logit(air_now, heat_now, time() - startint)
+				
+			startint = time()
 			
-		startint = time()
-		
-		##### DEVELOPMENT toggle the two lines below for development on a mac
-		blowerpwm = air
-		# blowerpwm.ChangeDutyCycle(air)
+			##### DEVELOPMENT toggle the two lines below for development on a mac
+			blowerpwm = air
+			# blowerpwm.ChangeDutyCycle(air)
 
-		air_now = air
-		bpwmdisp.set(air_now)
-		jumptoair.delete(0, END)
+			air_now = air
+			bpwmdisp.set(air_now)
+			jumptoair.delete(0, END)
 
-		##### DEVELOPMENT toggle the two lines below for development on a mac
-		heaterpwm = heat
-		# heaterpwm.ChangeDutyCycle(heat)
+			##### DEVELOPMENT toggle the two lines below for development on a mac
+			heaterpwm = heat
+			# heaterpwm.ChangeDutyCycle(heat)
 
-		heat_now = heat
-		hpwmdisp.set(heat_now)
-		jumptoheat.delete(0, END)
+			heat_now = heat
+			hpwmdisp.set(heat_now)
+			jumptoheat.delete(0, END)
 
-	##### DEVELOPMENT 
-	#else:
-		# blowerpwm.ChangeDutyCycle(air)
-		# heaterpwm.ChangeDutyCycle(heat)
+		##### DEVELOPMENT 
+		#else:
+			# blowerpwm.ChangeDutyCycle(air)
+			# heaterpwm.ChangeDutyCycle(heat)
 
 def control(root, bkill, hkill):
 	global blowerpwm
