@@ -3,6 +3,7 @@ from tkinter import filedialog
 import csv
 from time import *
 from threading import Thread
+import os
 
 
 # this is for the timer
@@ -49,6 +50,9 @@ bpwmdisp = StringVar()
 bpwmdisp.set(air_now)
 hpwmdisp = StringVar()
 hpwmdisp.set(heat_now)
+
+profiledisplayname = StringVar()
+profiledisplayname.set('none')
 
 
 # try:
@@ -166,7 +170,6 @@ def control(root, bkill, hkill):
 
 	else:
 		print(msg)
-	
 
 def close_window(root):
     control(root, True, True)
@@ -283,6 +286,14 @@ l_heatlevel = Label(root, text='HEAT LEVEL')
 l_heatlevel.place(x=500-125-(78/2), y=10+50+10+10+30, height=20, width=78)
 
 
+# profile name field
+l_blowlevel = Label(root, text='LOADED PROFILE', anchor='center', font=('Helvetica', 14, 'bold'))
+l_blowlevel.place(x=5, y=5, height=20, width=130)
+
+d_profilename = Label(root, textvariable=profiledisplayname, bg='#FADA5E', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
+d_profilename.place(x=5, y=5+20+5+20-25, height=20, width=130)
+
+
 # kill buttons
 kill_blower = Button(root, text='KILL', command=lambda: control(root, True, False))
 kill_blower.place(x=500-250-125-75, y=120+50-12+10+30, height=25, width=150)
@@ -307,8 +318,6 @@ jumptoheat = Entry(root, background='red')
 jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 
 
-
-
 def reset():
 	global intervals
 	global start
@@ -318,6 +327,7 @@ def reset():
 	profile = False
 	swreset()
 	print('intervals reset')
+	profiledisplayname.set('none')
 
 reset_int = Button(root, text='Reset Intervals', command=reset)
 reset_int.place(x=10, y=90+75+50+10+30-10+60+15, width=120, height=25)
@@ -332,7 +342,11 @@ def loadit():
         reader = csv.reader(infile)
         rawimport = list(reader)
         intervals = [list(map(float,rawimport)) for rawimport in rawimport]
+        profiledisplayname.set(os.path.basename(infile.name))
+        profile_name = os.path.basename(infile.name)
+
     infile.close()
+    print(f'FILENAME: {profile_name}')
     print("intervals loaded: ")
     print(intervals)
 
@@ -403,7 +417,7 @@ pattern = '{0:02d}:{1:02d}:{2:02d}'
 startButton = Button(root, text='Start', command=swstart)
 startButton.place(x=500-250-(60/2)-65, y=30+35+10, height=25, width=60)
 
-resetButton = Button(root, text='Reset', command=swreset,)
+resetButton = Button(root, text='Reset', command=swreset)
 resetButton.place(x=500-250-(60/2), y=30+35+10, height=25, width=60)
 
 stopButton = Button(root, text='Stop', command=swpause)
@@ -413,7 +427,7 @@ stopButton.place(x=500-250-(60/2)+65, y=30+35+10, height=25, width=60)
 ## END STOPWATCH ##
 
 
-root.bind('<Control-x>', close_window)
+root.bind('<Control-Escape>', close_window)
 root.bind('<Control-k>', killall)
 
 
