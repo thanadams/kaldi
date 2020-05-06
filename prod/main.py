@@ -207,12 +207,72 @@ def swreset():
     timer = [0, 0, 0]
     timeText.configure(text='00:00:00')
 
+# this function opens a saved profile and loads it into blowerinterals/heaterintervals
+def loadit():
+    global intervals
+    with filedialog.askopenfile(mode='r') as infile:
+        reader = csv.reader(infile)
+        rawimport = list(reader)
+        intervals = [list(map(float,rawimport)) for rawimport in rawimport]
+        profiledisplayname.set(os.path.basename(infile.name))
+        profile_name = os.path.basename(infile.name)
+
+    infile.close()
+    print(f'FILENAME: {profile_name}')
+    print("intervals loaded: ")
+    print(intervals)
+
+def runit():
+        global intervals
+        global profile
+
+        profile = True
+
+        ti = len(intervals)
+
+        swstart()
+
+        try:
+                for n, i in enumerate(intervals):
+                        print(f'interval {n} of {ti}: {i}')
+                        setpwm(int(round(i[0])), int(round(i[1])))
+                        bpwmdisp.set(int(round(i[0])))
+                        hpwmdisp.set(int(round(i[1])))
+                        sleep(i[2])
+        except KeyboardInterrupt:
+                pass
+        # as a safety measure, make sure both elements are at 0 after profile is finished
+        setpwm(0, 0)
+        profile = False
+        swpause()
+        print('Done running the thing!')
+        hpwmdisp.set(0)
+        bpwmdisp.set(0)
+        jumptoair.delete(0, END)
+        jumptoheat.delete(0, END)
+        jumptoair.focus_set()
+
+def looprunner():
+        runner_thread = Thread(target=runit)
+        runner_thread.start()
+
 # These are the key bindings and their associated functions
 def close_window(root):
     control(True, True)
     #### DEVELOPMENT
     # GPIO.cleanup()
     exit()
+
+def reset():
+	global intervals
+	global start
+	global profile
+	intervals = []
+	start = True
+	profile = False
+	swreset()
+	print('intervals reset')
+	profiledisplayname.set('none')
 
 def killall(root):
 	swpause()
@@ -275,7 +335,7 @@ root.bind('<Down>', h_down)
 root.bind('<w>', b_up)
 root.bind('<s>', b_down)
 root.bind('<Control-Return>', go)
-root.bind('<Control-Escape>', close_window)
+root.bind('<Control-x>', close_window)
 root.bind('<Control-k>', killall)
 
 
@@ -331,18 +391,6 @@ jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 set_levels = Button(text='update\nlevels', command=lambda:control(False, False))
 set_levels.place(x=315, y=245, height=55, width=75)
 
-
-def reset():
-	global intervals
-	global start
-	global profile
-	intervals = []
-	start = True
-	profile = False
-	swreset()
-	print('intervals reset')
-	profiledisplayname.set('none')
-
 reset_int = Button(text='Reset Intervals', command=reset)
 reset_int.place(x=10, y=445, width=120, height=25)
 
@@ -352,60 +400,11 @@ kill_both_elements.place(x=10, y=445+26, width=120, height=25)
 saveme = Button(text="Save as to csv..", command=saveit)
 saveme.place(x=250, y=445, width=120, height=25)
 
-# this function opens a saved profile and loads it into blowerinterals/heaterintervals
-def loadit():
-    global intervals
-    with filedialog.askopenfile(mode='r') as infile:
-        reader = csv.reader(infile)
-        rawimport = list(reader)
-        intervals = [list(map(float,rawimport)) for rawimport in rawimport]
-        profiledisplayname.set(os.path.basename(infile.name))
-        profile_name = os.path.basename(infile.name)
-
-    infile.close()
-    print(f'FILENAME: {profile_name}')
-    print("intervals loaded: ")
-    print(intervals)
-
 loadme = Button(text="Load Profile...", command=loadit)
 loadme.place(x=370, y=445, width=120, height=25)
 
 closewindow = Button(text="EXIT", command=lambda:close_window(root))
 closewindow.place(x=370, y=445+26, width=120, height=25)
-
-def runit():
-        global intervals
-        global profile
-
-        profile = True
-
-        ti = len(intervals)
-
-        swstart()
-
-        try:
-                for n, i in enumerate(intervals):
-                        print(f'interval {n} of {ti}: {i}')
-                        setpwm(int(round(i[0])), int(round(i[1])))
-                        bpwmdisp.set(int(round(i[0])))
-                        hpwmdisp.set(int(round(i[1])))
-                        sleep(i[2])
-        except KeyboardInterrupt:
-                pass
-        # as a safety measure, make sure both elements are at 0 after profile is finished
-        setpwm(0, 0)
-        profile = False
-        swpause()
-        print('Done running the thing!')
-        hpwmdisp.set(0)
-        bpwmdisp.set(0)
-        jumptoair.delete(0, END)
-        jumptoheat.delete(0, END)
-        jumptoair.focus_set()
-
-def looprunner():
-        runner_thread = Thread(target=runit)
-        runner_thread.start()
 
 runme = Button(text="Run this profile", command=looprunner)
 runme.place(x=130, y=445, width=120, height=25) 
@@ -418,9 +417,7 @@ directions = '''
 	quit:  control-x
 '''
 
-
 ## START STOPWATCH ##
-
 #stop watch display label
 swDisp = Label(text="TIME", justify=LEFT, font=('Helvetica'))
 swDisp.place(x=500-250-(130/2), y=4+10, width=130, height=30)
@@ -444,7 +441,6 @@ resetButton.place(x=500-250-(60/2), y=30+35+10, height=25, width=60)
 
 stopButton = Button(text='Stop', command=swpause)
 stopButton.place(x=500-250-(60/2)+65, y=30+35+10, height=25, width=60)
-
 ## END STOPWATCH ##
 
 
