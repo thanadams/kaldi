@@ -14,12 +14,9 @@ start = True
 profile = False
 
 heat_upper_bound = 100
-heat_lower_bound = 25
 blower_upper_bound = 100
-blower_lower_bound = 20
 
-
-# >>>>>>>>>>>>>>>>>>>>>>> RPI ONLY
+# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPMENT RPI ONLY
 # import RPi.GPIO as GPIO
 
 # GPIO.setmode(GPIO.BOARD)
@@ -49,7 +46,7 @@ root = Tk()
 root.wm_title('KALDI')
 
 # width x height + x_offset + y_offset:
-root.geometry('500x350+30+30')
+root.geometry('500x500+30+30')
 
 bpwmdisp = StringVar()
 bpwmdisp.set(air_now)
@@ -59,8 +56,6 @@ hpwmdisp.set(heat_now)
 profiledisplayname = StringVar()
 profiledisplayname.set('none')
 
-
-# try:
 
 def logit(air, heat, time):
 	global intervals
@@ -88,7 +83,7 @@ def setpwm(root, air, heat):
 	global blower_upper_bound 
 	global blower_lower_bound
 	
-	if air > blower_upper_bound or heat > heat_upper_bound or air < blower_lower_bound or heat < heat_lower_bound:
+	if air > blower_upper_bound or heat > heat_upper_bound: # or air < blower_lower_bound or heat < heat_lower_bound:
 		print('Out of bounds for the blower or heater!')
 
 	else:
@@ -151,7 +146,7 @@ def control(root, bkill, hkill):
 		elif newheat > 0:
 			print(msg)
 		else:
-			print(msg)
+			print('unsafe state: both elements are off')
 
 	# when the blower is on and the heater is off
 	elif air_now > 0 and heat_now == 0:
@@ -164,7 +159,7 @@ def control(root, bkill, hkill):
 		elif newheat > 0 and newair != 0:
 			setpwm(root, newair, newheat)
 		else:
-			print(msg)
+			print('unsafe state: blower on and heater off')
 
 	# when both components are on
 	elif air_now > 0 and heat_now > 0:
@@ -179,23 +174,10 @@ def control(root, bkill, hkill):
 		elif newheat > 0 and newair != 0 and bkill is False:
 			setpwm(root, newair, newheat)
 		else:
-			print(msg)
+			print('unsafe state: both elements are on')
 
 	else:
 		print(msg)
-
-def close_window(root):
-    control(root, True, True)
-    #### DEVELOPMENT
-    # GPIO.cleanup()
-    exit()
-
-def killall(root):
-	swpause()
-	control(root, True, True)
-
-def go(root):
-	control(root, False, False)
 
 def update_timeText():
     global state
@@ -225,7 +207,20 @@ def swreset():
     timer = [0, 0, 0]
     timeText.configure(text='00:00:00')
 
-root.bind('<Control-Return>', go)
+# These are the key bindings and their associated functions
+def close_window(root):
+    control(root, True, True)
+    #### DEVELOPMENT
+    # GPIO.cleanup()
+    exit()
+
+def killall():
+	swpause()
+	control(root, True, True)
+
+def go(root):
+	control(root, False, False)
+	# I couldn't get the key binding to work with the control function directly, so I made this.
 
 def b_up(root):
 	global air_now
@@ -250,10 +245,6 @@ def b_down(root):
 		print('can\'t start that way.')
 		jumptoair.delete(0, END)
 		jumptoheat.delete(0, END)
-
-root.bind('<w>', b_up)
-root.bind('<s>', b_down)
-
 
 def h_up(root):
 	global heat_now
@@ -281,6 +272,11 @@ def h_down(root):
 
 root.bind('<Up>', h_up)
 root.bind('<Down>', h_down)
+root.bind('<w>', b_up)
+root.bind('<s>', b_down)
+root.bind('<Control-Return>', go)
+root.bind('<Control-Escape>', close_window)
+root.bind('<Control-k>', killall)
 
 
 # duty cycle displays
@@ -300,7 +296,7 @@ l_heatlevel.place(x=500-125-(78/2), y=10+50+10+10+30, height=20, width=78)
 
 
 # profile name field
-l_blowlevel = Label(root, text='LOADED PROFILE', anchor='center', font=('Helvetica', 14, 'bold'))
+l_blowlevel = Label(root, text='LOADED PROFILE', anchor='center', font=('Helvetica', 12, 'bold'))
 l_blowlevel.place(x=5, y=5, height=20, width=130)
 
 d_profilename = Label(root, textvariable=profiledisplayname, bg='#FADA5E', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
@@ -331,6 +327,11 @@ jumptoheat = Entry(root, background='red')
 jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 
 
+# button to set both
+set_levels = Button(root, text='update\nlevels', command=lambda:control(root, False, False))
+set_levels.place(x=315, y=245, height=55, width=75)
+
+
 def reset():
 	global intervals
 	global start
@@ -343,10 +344,13 @@ def reset():
 	profiledisplayname.set('none')
 
 reset_int = Button(root, text='Reset Intervals', command=reset)
-reset_int.place(x=10, y=90+75+50+10+30-10+60+15, width=120, height=25)
+reset_int.place(x=10, y=445, width=120, height=25)
+
+kill_both_elements = Button(root, text='Kill heat and air', command=killall)
+kill_both_elements.place(x=10, y=445+26, width=120, height=25)
 
 saveme = Button(root, text="Save as to csv..", command=saveit)
-saveme.place(x=500-120-10-120-60+60, y=90+75+50+10+30-10+60+15, width=120, height=25)
+saveme.place(x=250, y=445, width=120, height=25)
 
 # this function opens a saved profile and loads it into blowerinterals/heaterintervals
 def loadit():
@@ -364,7 +368,7 @@ def loadit():
     print(intervals)
 
 loadme = Button(root, text="Load Profile...", command=loadit)
-loadme.place(x=500-120-10, y=90+75+50+10+30-10+60+15, width=120, height=25)
+loadme.place(x=370, y=445, width=120, height=25)
 
 def runit():
         global intervals
@@ -400,33 +404,35 @@ def looprunner():
         runner_thread = Thread(target=runit)
         runner_thread.start()
 
-runme = Button(root, text="Run This Profile", command=looprunner)
-runme.place(x=10+120, y=90+75+50+10+30-10+60+15, width=120, height=25) 
+runme = Button(root, text="Run this profile", command=looprunner)
+runme.place(x=130, y=445, width=120, height=25) 
 
 directions = '''
-set new levels:  control-return
-up/down blower:  arrow up/arrow down
-up/down heater:  w/s
-stop roasting:   control-k
-quit:            control-x
+	set new levels:  control-return
+	up/down blower:  arrow up/arrow down
+	up/down heater:  w/s
+	stop air and heat now:  control-k
+	quit:  control-x
 '''
+
+
+## START STOPWATCH ##
 
 #stop watch display label
 swDisp = Label(text="TIME", justify=LEFT, font=('Helvetica'))
 swDisp.place(x=500-250-(130/2), y=4+10, width=130, height=30)
  
-#STOP WATCH DISPLAY
+#stop watch display
 timeText = Label(root, text="00:00:00", font=("Helvetica", 25))
 timeText.place(x=500-250-(160/2), y=10+5+5+5+10, width=160, height=40)
 
 global timer
 timer = [0, 0, 0]
+
 global pattern
 pattern = '{0:02d}:{1:02d}:{2:02d}'
-
  
 #stopwatch buttons
- 
 startButton = Button(root, text='Start', command=swstart)
 startButton.place(x=500-250-(60/2)-65, y=30+35+10, height=25, width=60)
 
@@ -435,17 +441,9 @@ resetButton.place(x=500-250-(60/2), y=30+35+10, height=25, width=60)
 
 stopButton = Button(root, text='Stop', command=swpause)
 stopButton.place(x=500-250-(60/2)+65, y=30+35+10, height=25, width=60)
- 
 
 ## END STOPWATCH ##
 
 
-root.bind('<Control-Escape>', close_window)
-root.bind('<Control-k>', killall)
-
-
 update_timeText()
 root.mainloop()
-
-# except:
-# 	print('a critical error has occurred!')
