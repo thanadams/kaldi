@@ -20,11 +20,11 @@ air_now = 0
 heat_now = 0
 
 bindings = '''
-	set new levels:  control-return
-	up/down blower:  arrow up/arrow down
-	up/down heater:  w/s
-	stop air and heat now:  control-k
-	quit:  control-x
+	set new levels:		[CONTROL] + [RETURN]
+	blower up or down:		[ARROW UP] and [ARROW DOWN]
+	heater up or down :		[W] and [S]
+	stop air and heat:		[CONTROL] + [K]
+	exit:  			[CONTROL] + [X]
 '''
 
 # >>>>>>>>>>>>>>>>>>>>>>> DEVELOPMENT RPI ONLY
@@ -348,30 +348,27 @@ gui.bind('<Control-x>', close_window)
 gui.bind('<Control-k>', killall)
 
 
+# PWM LABELS
+l_blowlevel = Label(text='AIR % POWER', anchor='center')
+l_blowlevel.place(x=50, y=10+50+10+10+30, height=20, width=150)
+
+l_heatlevel = Label(text='HEAT % POWER', anchor='center')
+l_heatlevel.place(x=300, y=10+50+10+10+30, height=20, width=150)
+
 
 # duty cycle displays
 d_blowlevel = Label(textvariable=bpwmdisp, bg='#75DAFF', fg='white', font=('Helvetica', 60, 'bold'))
-d_blowlevel.place(x=500-250-125-75, y=10+30+50+10+30, height=70, width=150)
+d_blowlevel.place(x=50, y=10+30+50+10+30, height=70, width=150)
 
 d_heatlevel = Label(textvariable=hpwmdisp, bg='red', fg='white', font=('Helvetica', 60, 'bold'))
-d_heatlevel.place(x=500-125-75, y=10+30+50+10+30, height=70, width=150)
-
-
-
-# PWM LABELS
-l_blowlevel = Label(text='AIR LEVEL')
-l_blowlevel.place(x=500-250-125-(78/2), y=10+50+10+10+30, height=20, width=78)
-
-l_heatlevel = Label(text='HEAT LEVEL')
-l_heatlevel.place(x=500-125-(78/2), y=10+50+10+10+30, height=20, width=78)
-
+d_heatlevel.place(x=300, y=10+30+50+10+30, height=70, width=150)
 
 
 # profile name field
 l_blowlevel = Label(text='LOADED PROFILE', anchor='center', font=('Helvetica', 12, 'bold'))
 l_blowlevel.place(x=5, y=5, height=20, width=130)
 
-d_profilename = Label(textvariable=profiledisplayname, bg='#FADA5E', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
+d_profilename = Label(textvariable=profiledisplayname, bg='#fff0ba', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
 d_profilename.place(x=5, y=5+20+5+20-25, height=20, width=130)
 
 
@@ -402,6 +399,10 @@ jumptoheat = Entry(background='red')
 jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 
 
+# label for the keymappings
+mappings = Label(text=bindings, anchor='center', font=('Helvetica', 12, 'italic'), justify=LEFT)
+mappings.place(x=15, y=335, height=75, width=420)
+
 
 # button to set both
 set_levels = Button(text='update\nlevels', command=lambda:control(False, False))
@@ -410,58 +411,8 @@ set_levels.place(x=315, y=245, height=55, width=75)
 reset_int = Button(text='Reset Intervals', command=reset)
 reset_int.place(x=10, y=445, width=120, height=25)
 
-
-
-##### TEST THIS HOVER TEXT WHEN YOU GET HOME
-
-class ToolTip(object):
-
-    def __init__(self, widget):
-        self.widget = widget
-        self.tipwindow = None
-        self.id = None
-        self.x = self.y = 0
-
-    def showtip(self, text):
-        "Display text in tooltip window"
-        self.text = text
-        if self.tipwindow or not self.text:
-            return
-        x, y, cx, cy = self.widget.bbox("insert")
-        x = x + self.widget.winfo_rootx() + 57
-        y = y + cy + self.widget.winfo_rooty() +27
-        self.tipwindow = tw = Toplevel(self.widget)
-        tw.wm_overrideredirect(1)
-        tw.wm_geometry("+%d+%d" % (x, y))
-        label = Label(tw, text=self.text, justify=LEFT,
-                      background="#ffffe0", relief=SOLID, borderwidth=1,
-                      font=("tahoma", "8", "normal"))
-        label.pack(ipadx=1)
-
-    def hidetip(self):
-        tw = self.tipwindow
-        self.tipwindow = None
-        if tw:
-            tw.destroy()
-
-def CreateToolTip(widget, text):
-    toolTip = ToolTip(widget)
-    def enter(event):
-        toolTip.showtip(text)
-    def leave(event):
-        toolTip.hidetip()
-    widget.bind('<Enter>', enter)
-    widget.bind('<Leave>', leave)
-
-
 kill_both_elements = Button(text='Kill heat and air', command=lambda:killall(gui))
 kill_both_elements.place(x=10, y=445+26, width=120, height=25)
-
-CreateToolTip(kill_both_elements, 'Hello World')
-
-################################
-
-
 
 saveme = Button(text="Save as to csv..", command=saveit)
 saveme.place(x=250, y=445, width=120, height=25)
@@ -474,6 +425,7 @@ closewindow.place(x=370, y=445+26, width=120, height=25)
 
 runme = Button(text="Run this profile", command=looprunner)
 runme.place(x=130, y=445, width=120, height=25) 
+
 
 
 
@@ -501,6 +453,7 @@ resetButton.place(x=500-250-(60/2), y=30+35+10, height=25, width=60)
 stopButton = Button(text='Stop', command=swpause)
 stopButton.place(x=500-250-(60/2)+65, y=30+35+10, height=25, width=60)
 ## END STOPWATCH ##
+
 
 
 update_timeText()
