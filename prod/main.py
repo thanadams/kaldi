@@ -365,7 +365,7 @@ d_heatlevel.place(x=300, y=10+30+50+10+30, height=70, width=150)
 
 
 # profile name field
-l_blowlevel = Label(text='LOADED PROFILE', anchor='center', font=('Helvetica', 12, 'bold'))
+l_blowlevel = Label(text='LOADED PROFILE', anchor='center', font=('Helvetica', 9, 'bold'))
 l_blowlevel.place(x=5, y=5, height=20, width=130)
 
 d_profilename = Label(textvariable=profiledisplayname, bg='#fff0ba', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
