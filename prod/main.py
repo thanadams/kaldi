@@ -13,8 +13,21 @@ intervals = []
 start = True
 profile = False
 
+heat_upper_bound = 100
+blower_upper_bound = 100
 
-# >>>>>>>>>>>>>>>>>>>>>>> RPI ONLY
+air_now = 0
+heat_now = 0
+
+bindings = '''
+	set new levels:		[CONTROL] + [RETURN]
+	blower up or down:		[ARROW UP] and [ARROW DOWN]
+	heater up or down :		[W] and [S]
+	stop air and heat:		[CONTROL] + [K]
+	exit:  			[CONTROL] + [X]
+'''
+
+# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPMENT RPI ONLY
 # import RPi.GPIO as GPIO
 
 # GPIO.setmode(GPIO.BOARD)
@@ -36,15 +49,13 @@ profile = False
 # blowerpwm.start(0)
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-air_now = 0
-heat_now = 0
 
 # GUI
-root = Tk()
-root.wm_title('KALDI')
+gui = Tk()
+gui.wm_title('KALDI')
 
 # width x height + x_offset + y_offset:
-root.geometry('500x350+30+30')
+gui.geometry('500x500+30+30')
 
 bpwmdisp = StringVar()
 bpwmdisp.set(air_now)
@@ -54,8 +65,6 @@ hpwmdisp.set(heat_now)
 profiledisplayname = StringVar()
 profiledisplayname.set('none')
 
-
-# try:
 
 def logit(air, heat, time):
 	global intervals
@@ -70,7 +79,7 @@ def saveit():
         outfile.close()
         print("Successfully printed everything to file!")    
 
-def setpwm(root, air, heat):
+def setpwm(air, heat):
 	global blowerpwm
 	global heaterpwm
 	global start
@@ -78,42 +87,50 @@ def setpwm(root, air, heat):
 	global profile
 	global heat_now
 	global air_now
+	global heat_upper_bound 
+	global heat_lower_bound
+	global blower_upper_bound 
+	global blower_lower_bound
 	
-	if profile == False:
-		if start == True:
-			startint = time()
-			start = False
-			swstart()
-		else:
-			if air_now == 0 and heat_now == 0:
-				logit(air, heat, time() - startint)
+	if air > blower_upper_bound or heat > heat_upper_bound: # or air < blower_lower_bound or heat < heat_lower_bound:
+		print('Out of bounds for the blower or heater!')
+
+	else:
+		if profile == False:
+			if start == True:
+				startint = time()
+				start = False
+				swstart()
 			else:
-				logit(air_now, heat_now, time() - startint)
+				if air_now == 0 and heat_now == 0:
+					logit(air, heat, time() - startint)
+				else:
+					logit(air_now, heat_now, time() - startint)
+				
+			startint = time()
 			
-		startint = time()
-		
-		##### DEVELOPMENT toggle the two lines below for development on a mac
-		blowerpwm = air
-		# blowerpwm.ChangeDutyCycle(air)
+			##### DEVELOPMENT toggle the two lines below for development on a mac
+			blowerpwm = air
+			# blowerpwm.ChangeDutyCycle(air)
 
-		air_now = air
-		bpwmdisp.set(air_now)
-		jumptoair.delete(0, END)
+			air_now = air
+			bpwmdisp.set(air_now)
+			jumptoair.delete(0, END)
 
-		##### DEVELOPMENT toggle the two lines below for development on a mac
-		heaterpwm = heat
-		# heaterpwm.ChangeDutyCycle(heat)
+			##### DEVELOPMENT toggle the two lines below for development on a mac
+			heaterpwm = heat
+			# heaterpwm.ChangeDutyCycle(heat)
 
-		heat_now = heat
-		hpwmdisp.set(heat_now)
-		jumptoheat.delete(0, END)
+			heat_now = heat
+			hpwmdisp.set(heat_now)
+			jumptoheat.delete(0, END)
 
-	##### DEVELOPMENT 
-	#else:
-		# blowerpwm.ChangeDutyCycle(air)
-		# heaterpwm.ChangeDutyCycle(heat)
+		##### DEVELOPMENT 
+		#else:
+			# blowerpwm.ChangeDutyCycle(air)
+			# heaterpwm.ChangeDutyCycle(heat)
 
-def control(root, bkill, hkill):
+def control(bkill, hkill):
 	global blowerpwm
 	global heaterpwm
 	msg = 'unsafe state'
@@ -132,57 +149,44 @@ def control(root, bkill, hkill):
 	# when both heater and blower are off
 	if air_now == 0 and heat_now == 0:
 		if newair > 0 and newheat > 0:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		elif newair > 0:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		elif newheat > 0:
 			print(msg)
 		else:
-			print(msg)
+			print('unsafe state: both elements are off')
 
 	# when the blower is on and the heater is off
 	elif air_now > 0 and heat_now == 0:
 		if bkill is True:
-			setpwm(root, 0, heat_now)
+			setpwm(0, heat_now)
 		elif newair > 0 and newheat > 0:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		elif newair > 0 and newheat != 0:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		elif newheat > 0 and newair != 0:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		else:
-			print(msg)
+			print('unsafe state: blower on and heater off')
 
 	# when both components are on
 	elif air_now > 0 and heat_now > 0:
 		if hkill is True and bkill is False:
-			setpwm(root, air_now, 0)
+			setpwm(air_now, 0)
 		elif bkill is True and hkill is True:
-			setpwm(root, 0, 0)
+			setpwm(0, 0)
 		elif newair > 0 and newheat > 0 and bkill is False:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		elif newair > 0 and newheat != 0 and bkill is False:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		elif newheat > 0 and newair != 0 and bkill is False:
-			setpwm(root, newair, newheat)
+			setpwm(newair, newheat)
 		else:
-			print(msg)
+			print('unsafe state: both elements are on')
 
 	else:
 		print(msg)
-
-def close_window(root):
-    control(root, True, True)
-    #### DEVELOPMENT
-    # GPIO.cleanup()
-    exit()
-
-def killall(root):
-	swpause()
-	control(root, True, True)
-
-def go(root):
-	control(root, False, False)
 
 def update_timeText():
     global state
@@ -197,7 +201,7 @@ def update_timeText():
             timer[1] = 0
         timeString = pattern.format(timer[0], timer[1], timer[2])
         timeText.configure(text=timeString)
-    root.after(10, update_timeText)
+    gui.after(10, update_timeText)
 
 def swstart():
     global state
@@ -211,129 +215,6 @@ def swreset():
     global timer
     timer = [0, 0, 0]
     timeText.configure(text='00:00:00')
-
-root.bind('<Control-Return>', go)
-
-def b_up(root):
-	global air_now
-	if air_now > 0:
-		new = air_now + 1
-		jumptoair.delete(0, END)
-		jumptoair.insert(0, int(new))
-		control(root, False, False)
-	else:
-		print('can\'t start that way.')
-		jumptoair.delete(0, END)
-		jumptoheat.delete(0, END)
-
-def b_down(root):
-	global air_now
-	if air_now > 0:
-		new = air_now - 1
-		jumptoair.delete(0, END)
-		jumptoair.insert(0, int(new))
-		control(root, False, False)
-	else:
-		print('can\'t start that way.')
-		jumptoair.delete(0, END)
-		jumptoheat.delete(0, END)
-
-root.bind('<w>', b_up)
-root.bind('<s>', b_down)
-
-
-def h_up(root):
-	global heat_now
-	if heat_now > 0:
-		new = heat_now + 1
-		jumptoheat.delete(0, END)
-		jumptoheat.insert(0, int(new))
-		control(root, False, False)
-	else:
-		print('can\'t start that way.')
-		jumptoair.delete(0, END)
-		jumptoheat.delete(0, END)
-
-def h_down(root):
-	global heat_now
-	if heat_now > 0:
-		new = heat_now - 1
-		jumptoheat.delete(0, END)
-		jumptoheat.insert(0, int(new))
-		control(root, False, False)
-	else:
-		print('can\'t start that way.')
-		jumptoair.delete(0, END)
-		jumptoheat.delete(0, END)
-
-root.bind('<Up>', h_up)
-root.bind('<Down>', h_down)
-
-
-# duty cycle displays
-d_blowlevel = Label(root, textvariable=bpwmdisp, bg='#75DAFF', fg='white', font=('Helvetica', 60, 'bold'))
-d_blowlevel.place(x=500-250-125-75, y=10+30+50+10+30, height=70, width=150)
-
-d_heatlevel = Label(root, textvariable=hpwmdisp, bg='red', fg='white', font=('Helvetica', 60, 'bold'))
-d_heatlevel.place(x=500-125-75, y=10+30+50+10+30, height=70, width=150)
-
-
-# PWM LABELS
-l_blowlevel = Label(root, text='AIR LEVEL')
-l_blowlevel.place(x=500-250-125-(78/2), y=10+50+10+10+30, height=20, width=78)
-
-l_heatlevel = Label(root, text='HEAT LEVEL')
-l_heatlevel.place(x=500-125-(78/2), y=10+50+10+10+30, height=20, width=78)
-
-
-# profile name field
-l_blowlevel = Label(root, text='LOADED PROFILE', anchor='center', font=('Helvetica', 14, 'bold'))
-l_blowlevel.place(x=5, y=5, height=20, width=130)
-
-d_profilename = Label(root, textvariable=profiledisplayname, bg='#FADA5E', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
-d_profilename.place(x=5, y=5+20+5+20-25, height=20, width=130)
-
-
-# kill buttons
-kill_blower = Button(root, text='KILL', command=lambda: control(root, True, False))
-kill_blower.place(x=500-250-125-75, y=120+50-12+10+30, height=25, width=150)
-
-kill_heater = Button(root, text='KILL', command=lambda: control(root, False, True))
-kill_heater.place(x=500-125-75, y=120+50-12+10+30, height=25, width=150)
-
-
-# FIELD COLLECTION LABELS
-newblow = Label(root, text='SET AIR:', anchor='e')
-newblow.place(x=185-120-5, y=90+75+50+10+30-10, width=120, height=25)
-
-newheat = Label(root, text='SET HEAT:', anchor='e')
-newheat.place(x=185-120-5, y=120+75+50+10+30-10, width=120, height=25)
-
-
-# fields to collect the new PWM values
-jumptoair = Entry(root, background='#75DAFF')
-jumptoair.place(x=500-250-60, y=90+75+50+10+30-10, width=120, height=25)
-
-jumptoheat = Entry(root, background='red')
-jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
-
-
-def reset():
-	global intervals
-	global start
-	global profile
-	intervals = []
-	start = True
-	profile = False
-	swreset()
-	print('intervals reset')
-	profiledisplayname.set('none')
-
-reset_int = Button(root, text='Reset Intervals', command=reset)
-reset_int.place(x=10, y=90+75+50+10+30-10+60+15, width=120, height=25)
-
-saveme = Button(root, text="Save as to csv..", command=saveit)
-saveme.place(x=500-120-10-120-60+60, y=90+75+50+10+30-10+60+15, width=120, height=25)
 
 # this function opens a saved profile and loads it into blowerinterals/heaterintervals
 def loadit():
@@ -350,9 +231,6 @@ def loadit():
     print("intervals loaded: ")
     print(intervals)
 
-loadme = Button(root, text="Load Profile...", command=loadit)
-loadme.place(x=500-120-10, y=90+75+50+10+30-10+60+15, width=120, height=25)
-
 def runit():
         global intervals
         global profile
@@ -366,14 +244,14 @@ def runit():
         try:
                 for n, i in enumerate(intervals):
                         print(f'interval {n} of {ti}: {i}')
-                        setpwm(root, int(round(i[0])), int(round(i[1])))
+                        setpwm(int(round(i[0])), int(round(i[1])))
                         bpwmdisp.set(int(round(i[0])))
                         hpwmdisp.set(int(round(i[1])))
                         sleep(i[2])
         except KeyboardInterrupt:
                 pass
         # as a safety measure, make sure both elements are at 0 after profile is finished
-        setpwm(root, 0, 0)
+        setpwm(0, 0)
         profile = False
         swpause()
         print('Done running the thing!')
@@ -387,52 +265,196 @@ def looprunner():
         runner_thread = Thread(target=runit)
         runner_thread.start()
 
-runme = Button(root, text="Run This Profile", command=looprunner)
-runme.place(x=10+120, y=90+75+50+10+30-10+60+15, width=120, height=25) 
+def reset():
+	global intervals
+	global start
+	global profile
+	intervals = []
+	start = True
+	profile = False
+	swreset()
+	print('intervals reset')
+	profiledisplayname.set('none')
 
-directions = '''
-set new levels:  control-return
-up/down blower:  arrow up/arrow down
-up/down heater:  w/s
-stop roasting:   control-k
-quit:            control-x
-'''
+# These are the key bindings and their associated functions
+def close_window(gui):
+    control(True, True)
+    #### DEVELOPMENT
+    # GPIO.cleanup()
+    exit()
+
+def killall(gui):
+	swpause()
+	control(True, True)
+
+def go(gui):
+	control(False, False)
+	# I couldn't get the key binding to work with the control function directly, so I made this.
+
+def b_up(gui):
+	global air_now
+	if air_now > 0:
+		new = air_now + 1
+		jumptoair.delete(0, END)
+		jumptoair.insert(0, int(new))
+		control(False, False)
+	else:
+		print('can\'t start that way.')
+		jumptoair.delete(0, END)
+		jumptoheat.delete(0, END)
+
+def b_down(gui):
+	global air_now
+	if air_now > 0:
+		new = air_now - 1
+		jumptoair.delete(0, END)
+		jumptoair.insert(0, int(new))
+		control(False, False)
+	else:
+		print('can\'t start that way.')
+		jumptoair.delete(0, END)
+		jumptoheat.delete(0, END)
+
+def h_up(gui):
+	global heat_now
+	if heat_now > 0:
+		new = heat_now + 1
+		jumptoheat.delete(0, END)
+		jumptoheat.insert(0, int(new))
+		control(False, False)
+	else:
+		print('can\'t start that way.')
+		jumptoair.delete(0, END)
+		jumptoheat.delete(0, END)
+
+def h_down(gui):
+	global heat_now
+	if heat_now > 0:
+		new = heat_now - 1
+		jumptoheat.delete(0, END)
+		jumptoheat.insert(0, int(new))
+		control(False, False)
+	else:
+		print('can\'t start that way.')
+		jumptoair.delete(0, END)
+		jumptoheat.delete(0, END)
+
+gui.bind('<Up>', h_up)
+gui.bind('<Down>', h_down)
+gui.bind('<w>', b_up)
+gui.bind('<s>', b_down)
+gui.bind('<Control-Return>', go)
+gui.bind('<Control-x>', close_window)
+gui.bind('<Control-k>', killall)
+
+
+# PWM LABELS
+l_blowlevel = Label(text='AIR % POWER', anchor='center')
+l_blowlevel.place(x=50, y=10+50+10+10+30, height=20, width=150)
+
+l_heatlevel = Label(text='HEAT % POWER', anchor='center')
+l_heatlevel.place(x=300, y=10+50+10+10+30, height=20, width=150)
+
+
+# duty cycle displays
+d_blowlevel = Label(textvariable=bpwmdisp, bg='#75DAFF', fg='white', font=('Helvetica', 60, 'bold'))
+d_blowlevel.place(x=50, y=10+30+50+10+30, height=70, width=150)
+
+d_heatlevel = Label(textvariable=hpwmdisp, bg='red', fg='white', font=('Helvetica', 60, 'bold'))
+d_heatlevel.place(x=300, y=10+30+50+10+30, height=70, width=150)
+
+
+# profile name field
+l_blowlevel = Label(text='LOADED PROFILE', anchor='center', font=('Helvetica', 12, 'bold'))
+l_blowlevel.place(x=5, y=5, height=20, width=130)
+
+d_profilename = Label(textvariable=profiledisplayname, bg='#fff0ba', fg='black', anchor='center', font=('Helvetica', 12, 'italic'))
+d_profilename.place(x=5, y=5+20+5+20-25, height=20, width=130)
+
+
+
+# kill buttons
+kill_blower = Button(text='KILL', command=lambda: control(True, False))
+kill_blower.place(x=500-250-125-75, y=120+50-12+10+30, height=25, width=150)
+
+kill_heater = Button(text='KILL', command=lambda: control(False, True))
+kill_heater.place(x=500-125-75, y=120+50-12+10+30, height=25, width=150)
+
+
+
+# FIELD COLLECTION LABELS
+newblow = Label(text='SET AIR:', anchor='e')
+newblow.place(x=185-120-5, y=90+75+50+10+30-10, width=120, height=25)
+
+newheat = Label(text='SET HEAT:', anchor='e')
+newheat.place(x=185-120-5, y=120+75+50+10+30-10, width=120, height=25)
+
+
+
+# fields to collect the new PWM values
+jumptoair = Entry(background='#75DAFF')
+jumptoair.place(x=500-250-60, y=90+75+50+10+30-10, width=120, height=25)
+
+jumptoheat = Entry(background='red')
+jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
+
+
+# label for the keymappings
+mappings = Label(text=bindings, anchor='center', font=('Helvetica', 9, 'italic'), justify=LEFT)
+mappings.place(x=15, y=335, height=75, width=420)
+
+
+# button to set both
+set_levels = Button(text='update\nlevels', command=lambda:control(False, False))
+set_levels.place(x=315, y=245, height=55, width=75)
+
+reset_int = Button(text='Reset Intervals', command=reset)
+reset_int.place(x=10, y=445, width=120, height=25)
+
+kill_both_elements = Button(text='Kill heat and air', command=lambda:killall(gui))
+kill_both_elements.place(x=10, y=445+26, width=120, height=25)
+
+saveme = Button(text="Save as to csv..", command=saveit)
+saveme.place(x=250, y=445, width=120, height=25)
+
+loadme = Button(text="Load Profile...", command=loadit)
+loadme.place(x=370, y=445, width=120, height=25)
+
+closewindow = Button(text="EXIT", command=lambda:close_window(gui))
+closewindow.place(x=370, y=445+26, width=120, height=25)
+
+runme = Button(text="Run this profile", command=looprunner)
+runme.place(x=130, y=445, width=120, height=25) 
+
+
+
+
+## START STOPWATCH ##
+global timer
+global pattern
+timer = [0, 0, 0]
+pattern = '{0:02d}:{1:02d}:{2:02d}'
 
 #stop watch display label
 swDisp = Label(text="TIME", justify=LEFT, font=('Helvetica'))
 swDisp.place(x=500-250-(130/2), y=4+10, width=130, height=30)
  
-#STOP WATCH DISPLAY
-timeText = Label(root, text="00:00:00", font=("Helvetica", 25))
+#stop watch display
+timeText = Label(text="00:00:00", font=("Helvetica", 25))
 timeText.place(x=500-250-(160/2), y=10+5+5+5+10, width=160, height=40)
-
-global timer
-timer = [0, 0, 0]
-global pattern
-pattern = '{0:02d}:{1:02d}:{2:02d}'
-
  
 #stopwatch buttons
- 
-startButton = Button(root, text='Start', command=swstart)
+startButton = Button(text='Start', command=swstart)
 startButton.place(x=500-250-(60/2)-65, y=30+35+10, height=25, width=60)
 
-resetButton = Button(root, text='Reset', command=swreset)
+resetButton = Button(text='Reset', command=swreset)
 resetButton.place(x=500-250-(60/2), y=30+35+10, height=25, width=60)
 
-stopButton = Button(root, text='Stop', command=swpause)
+stopButton = Button(text='Stop', command=swpause)
 stopButton.place(x=500-250-(60/2)+65, y=30+35+10, height=25, width=60)
- 
-
 ## END STOPWATCH ##
 
 
-root.bind('<Control-Escape>', close_window)
-root.bind('<Control-k>', killall)
-
 
 update_timeText()
-root.mainloop()
-
-# except:
-# 	print('a critical error has occurred!')
+gui.mainloop()
