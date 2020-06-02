@@ -110,7 +110,7 @@ def setpwm(air, heat):
 			startint = time()
 			
 			# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT toggle the two lines below for development on a mac
-			blowerpwm = air
+			# blowerpwm = air
 			blowerpwm.ChangeDutyCycle(air)
 
 			air_now = air
@@ -118,7 +118,7 @@ def setpwm(air, heat):
 			jumptoair.delete(0, END)
 
 			# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT toggle the two lines below for development on a mac
-			heaterpwm = heat
+			# heaterpwm = heat
 			heaterpwm.ChangeDutyCycle(heat)
 
 			heat_now = heat
