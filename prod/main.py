@@ -400,7 +400,7 @@ jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 
 
 # label for the keymappings
-mappings = Label(text=bindings, anchor='center', font=('Helvetica', 12, 'italic'), justify=LEFT)
+mappings = Label(text=bindings, anchor='center', font=('Helvetica', 9, 'italic'), justify=LEFT)
 mappings.place(x=15, y=335, height=75, width=420)
 
 
