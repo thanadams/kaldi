@@ -28,25 +28,25 @@ bindings = '''
 '''
 
 # >>>>>>>>>>>>>>>>>>>>>>> DEVELOPMENT RPI ONLY
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 
-# GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BOARD)
 
-# # assigning pin 10 - HEATER
-# GPIO.setup(10, GPIO.OUT)
-# GPIO.output(10, 0)
+# assigning pin 10 - HEATER
+GPIO.setup(10, GPIO.OUT)
+GPIO.output(10, 0)
 
-# # assigning pin 8 - BLOWER
-# GPIO.setup(8, GPIO.OUT)
-# GPIO.output(8, 0)
+# assigning pin 8 - BLOWER
+GPIO.setup(8, GPIO.OUT)
+GPIO.output(8, 0)
 
-# # starting PWM for heater
-# heaterpwm = GPIO.PWM(10, 60)
-# heaterpwm.start(0)
+# starting PWM for heater
+heaterpwm = GPIO.PWM(10, 60)
+heaterpwm.start(0)
 
-# # starting PWM for the blower
-# blowerpwm = GPIO.PWM(8, 59)
-# blowerpwm.start(0)
+# starting PWM for the blower
+blowerpwm = GPIO.PWM(8, 59)
+blowerpwm.start(0)
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -109,26 +109,26 @@ def setpwm(air, heat):
 				
 			startint = time()
 			
-			##### DEVELOPMENT toggle the two lines below for development on a mac
+			# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT toggle the two lines below for development on a mac
 			blowerpwm = air
-			# blowerpwm.ChangeDutyCycle(air)
+			blowerpwm.ChangeDutyCycle(air)
 
 			air_now = air
 			bpwmdisp.set(air_now)
 			jumptoair.delete(0, END)
 
-			##### DEVELOPMENT toggle the two lines below for development on a mac
+			# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT toggle the two lines below for development on a mac
 			heaterpwm = heat
-			# heaterpwm.ChangeDutyCycle(heat)
+			heaterpwm.ChangeDutyCycle(heat)
 
 			heat_now = heat
 			hpwmdisp.set(heat_now)
 			jumptoheat.delete(0, END)
 
-		##### DEVELOPMENT 
-		#else:
-			# blowerpwm.ChangeDutyCycle(air)
-			# heaterpwm.ChangeDutyCycle(heat)
+		# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT these two lines need to be commented to develop on a mac
+		else:
+			blowerpwm.ChangeDutyCycle(air)
+			heaterpwm.ChangeDutyCycle(heat)
 
 def control(bkill, hkill):
 	global blowerpwm
@@ -279,8 +279,8 @@ def reset():
 # These are the key bindings and their associated functions
 def close_window(gui):
     control(True, True)
-    #### DEVELOPMENT
-    # GPIO.cleanup()
+    # >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT the 1 line blow needs to be commented out
+    GPIO.cleanup()
     exit()
 
 def killall(gui):
