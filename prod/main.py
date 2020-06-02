@@ -167,6 +167,8 @@ def control(bkill, hkill):
 			setpwm(newair, newheat)
 		elif newheat > 0 and newair != 0:
 			setpwm(newair, newheat)
+		elif newair > 0:
+			setpwm(newair, newheat)
 		else:
 			print('unsafe state: blower on and heater off')
 
