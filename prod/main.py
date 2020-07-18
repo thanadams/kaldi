@@ -2,10 +2,12 @@ from tkinter import *
 from tkinter import filedialog
 import csv
 from time import *
+import datetime
 from threading import Thread
 import os
 from yoctopuce.yocto_api import *
 from yoctopuce.yocto_temperature import *
+
 
 #configure the temp sensor
 YAPI.RegisterHub("127.0.0.1")
@@ -104,31 +106,39 @@ def tempit():
 	global temps
 	ch1 = channel1.get_currentValue()
 	ch2 = channel2.get_currentValue()
-	temps.append([ch1, ch2, time.time()])
+	timetosend = time.ctime()
+	timetosend = datetime.datetime.strptime(time.ctime(), "%a %b %d %H:%M:%S %Y")
+	timetosend = timetosend.strftime("%H:%M:%S")
+	temps.append([ch1, ch2, timetosend])
 	print(f'CHANNEL1: {ch1} CHANNEL2: {ch2}')
 	time.sleep(1)
 
-def logit(air, heat, time):
+def logit(air, heat, time, time_of_log):
 	global intervals
-	intervals.append([air, heat, time])
+	intervals.append([air, heat, time, time_of_log])
 	print(f'new interval {len(intervals)}: {intervals[-1]}')
 
 def saveit():
-        global intervals
-        global temps
-        
-        #save intervals
-        with filedialog.asksaveasfile(mode='w') as outfile:
-            writer = csv.writer(outfile)
-            writer.writerows(intervals)            
-        outfile.close()
+		global intervals
+		global temps
 
-        #save temps
-        with filedialog.asksaveasfile(mode='w') as outfile:
-            writer = csv.writer(outfile)
-            writer.writerows(temps)            
-        outfile.close()
-        print("Successfully printed everything to file!")    
+		tstampsave = datetime.datetime.strptime(time.ctime(), "%a %b %d %H:%M:%S %Y")
+		tstampsave = tstampsave.strftime("%d%m%Y%H%M%S")
+
+		#save intervals
+		intervals_save = 'intervals - ' + tstampsave
+		with filedialog.asksaveasfile(mode='w', initialdir = "/share/profiles/", initialfile = intervals_save) as outfile:
+		    writer = csv.writer(outfile)
+		    writer.writerows(intervals)            
+		outfile.close()
+
+		#save temps
+		temps_save = 'temps - ' + tstampsave
+		with filedialog.asksaveasfile(mode='w', initialdir = "/share/profiles/", initialfile = temps_save) as outfile:
+		    writer = csv.writer(outfile)
+		    writer.writerows(temps)            
+		outfile.close()
+		print("Successfully printed everything to file!")    
 
 def setpwm(air, heat):
 	global blowerpwm
@@ -156,9 +166,19 @@ def setpwm(air, heat):
 				temptimer = RepeatedTimer(1, tempit)
 			else:
 				if air_now == 0 and heat_now == 0:
-					logit(air, heat, time.time() - startint)
+
+					timetosend = time.ctime()
+					timetosend = datetime.datetime.strptime(time.ctime(), "%a %b %d %H:%M:%S %Y")
+					timetosend = timetosend.strftime("%H:%M:%S")
+
+					logit(air, heat, time.time() - startint, timetosend)
 				else:
-					logit(air_now, heat_now, time.time() - startint)
+
+					timetosend = time.ctime()
+					timetosend = datetime.datetime.strptime(time.ctime(), "%a %b %d %H:%M:%S %Y")
+					timetosend = timetosend.strftime("%H:%M:%S")
+
+					logit(air_now, heat_now, time.time() - startint, timetosend)
 				
 			startint = time.time()
 			
@@ -332,6 +352,7 @@ def reset():
 def close_window(gui):
     control(True, True)
     GPIO.cleanup()
+    temptimer.stop()
     exit()
 
 def killall(gui):
