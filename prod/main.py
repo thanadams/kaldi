@@ -4,11 +4,20 @@ import csv
 from time import *
 from threading import Thread
 import os
+from yoctopuce.yocto_api import *
+from yoctopuce.yocto_temperature import *
 
+#configure the temp sensor
+YAPI.RegisterHub("127.0.0.1")
+sensor = YTemperature.FirstTemperature()
+serial = sensor.get_module().get_serialNumber()
+channel1 = YTemperature.FindTemperature(serial + '.temperature1')
+channel2 = YTemperature.FindTemperature(serial + '.temperature2')
 
 # this is for the timer
 state = False
 
+temps = []
 intervals = []
 start = True
 profile = False
@@ -27,7 +36,34 @@ bindings = '''
 	exit:  			[CONTROL] + [X]
 '''
 
-# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPMENT RPI ONLY
+
+
+from threading import Timer
+
+class RepeatedTimer(object):
+    def __init__(self, interval, function):
+        self._timer     = None
+        self.interval   = interval
+        self.function   = function
+        self.is_running = False
+        self.start()
+
+    def _run(self):
+        self.is_running = False
+        self.start()
+        self.function()
+
+    def start(self):
+        if not self.is_running:
+            self._timer = Timer(self.interval, self._run)
+            self._timer.start()
+            self.is_running = True
+
+    def stop(self):
+        self._timer.cancel()
+        self.is_running = False
+
+
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BOARD)
@@ -47,7 +83,6 @@ heaterpwm.start(0)
 # starting PWM for the blower
 blowerpwm = GPIO.PWM(8, 59)
 blowerpwm.start(0)
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 # GUI
@@ -65,6 +100,13 @@ hpwmdisp.set(heat_now)
 profiledisplayname = StringVar()
 profiledisplayname.set('none')
 
+def tempit():
+	global temps
+	ch1 = channel1.get_currentValue()
+	ch2 = channel2.get_currentValue()
+	temps.append([ch1, ch2, time.time()])
+	print(f'CHANNEL1: {ch1} CHANNEL2: {ch2}')
+	time.sleep(1)
 
 def logit(air, heat, time):
 	global intervals
@@ -73,9 +115,18 @@ def logit(air, heat, time):
 
 def saveit():
         global intervals
+        global temps
+        
+        #save intervals
         with filedialog.asksaveasfile(mode='w') as outfile:
             writer = csv.writer(outfile)
             writer.writerows(intervals)            
+        outfile.close()
+
+        #save temps
+        with filedialog.asksaveasfile(mode='w') as outfile:
+            writer = csv.writer(outfile)
+            writer.writerows(temps)            
         outfile.close()
         print("Successfully printed everything to file!")    
 
@@ -91,6 +142,7 @@ def setpwm(air, heat):
 	global heat_lower_bound
 	global blower_upper_bound 
 	global blower_lower_bound
+	global temptimer
 	
 	if air > blower_upper_bound or heat > heat_upper_bound: # or air < blower_lower_bound or heat < heat_lower_bound:
 		print('Out of bounds for the blower or heater!')
@@ -98,34 +150,30 @@ def setpwm(air, heat):
 	else:
 		if profile == False:
 			if start == True:
-				startint = time()
+				startint = time.time()
 				start = False
 				swstart()
+				temptimer = RepeatedTimer(1, tempit)
 			else:
 				if air_now == 0 and heat_now == 0:
-					logit(air, heat, time() - startint)
+					logit(air, heat, time.time() - startint)
 				else:
-					logit(air_now, heat_now, time() - startint)
+					logit(air_now, heat_now, time.time() - startint)
 				
-			startint = time()
+			startint = time.time()
 			
-			# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT toggle the two lines below for development on a mac
-			# blowerpwm = air
 			blowerpwm.ChangeDutyCycle(air)
 
 			air_now = air
 			bpwmdisp.set(air_now)
 			jumptoair.delete(0, END)
 
-			# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT toggle the two lines below for development on a mac
-			# heaterpwm = heat
 			heaterpwm.ChangeDutyCycle(heat)
 
 			heat_now = heat
 			hpwmdisp.set(heat_now)
 			jumptoheat.delete(0, END)
 
-		# >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT these two lines need to be commented to develop on a mac
 		else:
 			blowerpwm.ChangeDutyCycle(air)
 			heaterpwm.ChangeDutyCycle(heat)
@@ -236,6 +284,7 @@ def loadit():
 def runit():
         global intervals
         global profile
+        global temptimer
 
         profile = True
 
@@ -256,6 +305,7 @@ def runit():
         setpwm(0, 0)
         profile = False
         swpause()
+        temptimer.stop()
         print('Done running the thing!')
         hpwmdisp.set(0)
         bpwmdisp.set(0)
@@ -281,13 +331,14 @@ def reset():
 # These are the key bindings and their associated functions
 def close_window(gui):
     control(True, True)
-    # >>>>>>>>>>>>>>>>>>>>>>> DEVELOPEMENT the 1 line blow needs to be commented out
     GPIO.cleanup()
     exit()
 
 def killall(gui):
+	global temptimer
 	swpause()
 	control(True, True)
+	temptimer.stop()
 
 def go(gui):
 	control(False, False)
@@ -427,8 +478,6 @@ closewindow.place(x=370, y=445+26, width=120, height=25)
 
 runme = Button(text="Run this profile", command=looprunner)
 runme.place(x=130, y=445, width=120, height=25) 
-
-
 
 
 ## START STOPWATCH ##
