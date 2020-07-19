@@ -289,10 +289,16 @@ def swreset():
 # this function opens a saved profile and loads it into blowerinterals/heaterintervals
 def loadit():
     global intervals
-    with filedialog.askopenfile(mode='r') as infile:
+    with filedialog.askopenfile(mode='r', initialdir = "/share/profiles/") as infile:
         reader = csv.reader(infile)
         rawimport = list(reader)
-        intervals = [list(map(float,rawimport)) for rawimport in rawimport]
+
+        print(rawimport)
+
+        for interval_set in rawimport:
+        	intervals.append([float(interval_set[0]),float(interval_set[1]),float(interval_set[2])])
+        print(intervals)
+        
         profiledisplayname.set(os.path.basename(infile.name))
         profile_name = os.path.basename(infile.name)
 
@@ -311,6 +317,7 @@ def runit():
         ti = len(intervals)
 
         swstart()
+        temptimer = RepeatedTimer(1, tempit)
 
         try:
                 for n, i in enumerate(intervals):
