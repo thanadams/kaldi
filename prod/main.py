@@ -16,6 +16,9 @@ serial = sensor.get_module().get_serialNumber()
 channel1 = YTemperature.FindTemperature(serial + '.temperature1')
 channel2 = YTemperature.FindTemperature(serial + '.temperature2')
 
+# this is the timer object - need to  check if it's not 0 before exiting the program
+temptimer = 0
+
 # this is for the timer
 state = False
 
@@ -99,13 +102,23 @@ bpwmdisp.set(air_now)
 hpwmdisp = StringVar()
 hpwmdisp.set(heat_now)
 
+ch1 = int(channel1.get_currentValue())
+ch2 = int(channel2.get_currentValue())
+
+t1disp = StringVar()
+t1disp.set(ch1)
+t2disp = StringVar()
+t2disp.set(ch2)
+
 profiledisplayname = StringVar()
 profiledisplayname.set('none')
 
 def tempit():
 	global temps
-	ch1 = channel1.get_currentValue()
-	ch2 = channel2.get_currentValue()
+	ch1 = round(channel1.get_currentValue())
+	ch2 = round(channel2.get_currentValue())
+	t1disp.set(ch1)
+	t2disp.set(ch2)
 	timetosend = time.ctime()
 	timetosend = datetime.datetime.strptime(time.ctime(), "%a %b %d %H:%M:%S %Y")
 	timetosend = timetosend.strftime("%H:%M:%S")
@@ -357,10 +370,11 @@ def reset():
 
 # These are the key bindings and their associated functions
 def close_window(gui):
-    control(True, True)
-    GPIO.cleanup()
-    temptimer.stop()
-    exit()
+	control(True, True)
+	if temptimer != 0:
+		temptimer.stop()
+	GPIO.cleanup()
+	exit()
 
 def killall(gui):
 	global temptimer
@@ -480,15 +494,39 @@ jumptoheat = Entry(background='red')
 jumptoheat.place(x=500-250-60, y=120+75+50+10+30-10, width=120, height=25)
 
 
-# label for the keymappings
-mappings = Label(text=bindings, anchor='center', font=('Helvetica', 9, 'italic'), justify=LEFT)
-mappings.place(x=15, y=335, height=75, width=420)
+# label for the keymappings - taking this out to display the temps I don't think I need this
+# mappings = Label(text=bindings, anchor='center', font=('Helvetica', 9, 'italic'), justify=LEFT)
+# mappings.place(x=15, y=335+25, height=75, width=420)
 
 
 # button to set both
 set_levels = Button(text='update\nlevels', command=lambda:control(False, False))
 set_levels.place(x=315, y=245, height=55, width=75)
 
+
+# temperature displays
+t1tempstage = Label(text="STAGE 1:", anchor='e', font=('Helvetica', 15))
+t1tempstage.place(x=500-250-60-15-100+10, y=245+65+5, height=60, width=100)
+
+t1temp = Label(textvariable=t1disp, bg='#f9d778', font=('Helvetica', 40, 'bold'))
+t1temp.place(x=500-250-60-15+10+7, y=245+65+10, height=50, width=115)
+
+t1tempdegf = Label(text="°F", anchor='w', font=('Helvetica', 15))
+t1tempdegf.place(x=500-250-60-15-100+10+220, y=245+57, height=60, width=100)
+
+
+t2tempstage = Label(text="STAGE 2:", anchor='e', font=('Helvetica', 15))
+t2tempstage.place(x=500-250-60-15-100+10, y=245+65+65-5, height=60, width=100)
+
+t2temp = Label(textvariable=t2disp, bg='#f9d778', font=('Helvetica', 40, 'bold'))
+t2temp.place(x=500-250-60-15+10+7, y=275+60+40, height=50, width=115)
+
+t2tempdegf = Label(text="°F", anchor='w', font=('Helvetica', 15))
+t2tempdegf.place(x=500-250-60-15-100+10+220, y=245+57+53, height=60, width=100)
+
+
+
+# buttons along bottom
 reset_int = Button(text='Reset Intervals', command=reset)
 reset_int.place(x=10, y=445, width=120, height=25)
 
@@ -506,7 +544,6 @@ closewindow.place(x=370, y=445+26, width=120, height=25)
 
 runme = Button(text="Run this profile", command=looprunner)
 runme.place(x=130, y=445, width=120, height=25) 
-
 
 ## START STOPWATCH ##
 global timer
