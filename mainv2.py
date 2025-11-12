@@ -88,6 +88,8 @@ profile = False
 # Variables for accurate timekeeping
 roast_start_time = 0
 last_elapsed_time = 0
+# NEW GLOBAL VARIABLE: Tracks the time of the "Start" event (Bean Drop)
+roast_drop_time = 0 
 
 heat_upper_bound = 100
 blower_upper_bound = 100
@@ -328,13 +330,23 @@ def update_combined_graph(ax1, ax2, ax3, canvas):
 # NEW HELPER: Calculates DTR for logging
 def get_current_dtr_percentage():
     """Calculates and returns the DTR percentage, or None if not started."""
-    if first_crack_time > 0:
+    global roast_drop_time
+    
+    # DTR can only be calculated if First Crack has been marked AND Start has been marked
+    if first_crack_time > 0 and roast_drop_time > 0:
         current_elapsed_time = timer[0] * 3600 + timer[1] * 60 + timer[2]
-        if current_elapsed_time > 0:
-            time_since_crack = current_elapsed_time - first_crack_time
+        
+        # Calculate time since first crack
+        time_since_crack = current_elapsed_time - first_crack_time
+        
+        # Calculate TOTAL roast time since drop (Start event)
+        # FIX: Denominator uses time since Start event (roast_drop_time)
+        total_time = current_elapsed_time - roast_drop_time
+        
+        if total_time > 0:
             if time_since_crack < 0:
-                 return 0.0 # DTR can't be negative
-            total_time = current_elapsed_time
+                 # This happens if FC is logged before Start is processed, but logic above should prevent that.
+                 return 0.0 
             return (time_since_crack / total_time) * 100
     return None
 
@@ -619,7 +631,7 @@ def swpause():
         last_elapsed_time = time.time() - roast_start_time
 
 def swreset():
-    global timer, temps, ror_history, roast_events, smoothed_bt_ror_calc, smoothed_bt_plot, smoothed_ia_plot, after_id_auto_mark_start, roast_start_time, last_elapsed_time, first_crack_time
+    global timer, temps, ror_history, roast_events, smoothed_bt_ror_calc, smoothed_bt_plot, smoothed_ia_plot, after_id_auto_mark_start, roast_start_time, last_elapsed_time, first_crack_time, roast_drop_time
     global last_displayed_bt, last_displayed_ia
     swpause()
     # Cancel the pending auto-mark event if the roast is reset
@@ -631,6 +643,7 @@ def swreset():
     roast_start_time = 0
     last_elapsed_time = 0
     first_crack_time = 0 # Reset first crack tracker
+    roast_drop_time = 0 # Reset roast drop tracker
     timer = [0, 0, 0]
     timeText.configure(text='00:00:00')
     
@@ -748,7 +761,7 @@ def start_new_roast():
 
 def mark_event(event_name):
     """Marks a roast event at the current time."""
-    global roast_events, timer, first_crack_time
+    global roast_events, timer, first_crack_time, roast_drop_time
     if not state:
         # Allow marking 'End' even if timer is stopped, for shutdown sequence
         if event_name != "End":
@@ -764,6 +777,14 @@ def mark_event(event_name):
             print(f"--- FIRST CRACK STARTED at {time.strftime('%M:%S', time.gmtime(first_crack_time))} ---")
         else:
             print("First Crack time already logged.")
+    
+    # Store Start (Drop) time
+    if event_name == "Start":
+        if roast_drop_time == 0:
+            roast_drop_time = current_time_seconds
+            print(f"--- ROAST DROP TIME SET at {time.strftime('%M:%S', time.gmtime(roast_drop_time))} ---")
+        else:
+            print("Roast Drop time already logged.")
 
     # Use the current smoothed bean temp for the event log
     current_temp = round(smoothed_bt_plot[-1]) if smoothed_bt_plot else round(sensor1.get_currentValue())
